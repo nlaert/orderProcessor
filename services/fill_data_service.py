@@ -14,7 +14,7 @@ class FillDataService:
         self.config = read_config.ReadConfig().read_configs()
         options = Options()
         options.headless = self.config['headless']
-        self.driver = webdriver.Firefox()
+        self.driver = webdriver.Firefox(firefox_binary=self.config['firefox_binary'], executable_path=self.config['geckodriver'], options=options)
         print('Creating firefox instance')
 
     def fill_dropshipping(self, order):
