@@ -32,6 +32,7 @@ class FillDataService:
             self.__create_customer(order)
             customer_row = self.__check_if_customer_exists(order['customer_id'])
         self.__create_order(order, customer_row)
+        self.driver.quit()
 
     def __create_customer(self, order):
         self.driver.find_element_by_id('new_customer').click()
