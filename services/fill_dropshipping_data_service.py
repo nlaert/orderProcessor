@@ -9,7 +9,7 @@ import time
 import re
 
 
-class FillDataService:
+class FillDropshippingDataService:
     def __init__(self):
         self.config = read_config.ReadConfig().read_configs()
         options = Options()

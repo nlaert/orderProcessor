@@ -1,10 +1,10 @@
-from services import fill_data_service
+from services import fill__dropshipping_data_service
 from threading import Thread
 
 
 class OrderProcessorService:
     def __init__(self):
-        self.service = fill_data_service.FillDataService()
+        self.service = fill__dropshipping_data_service.FillDropshippingDataService()
 
     def load_order(self, order):
         print('loading order')
