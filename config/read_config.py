@@ -16,7 +16,6 @@ class ReadConfig:
         self.config['dropshipping_url'] = environ.get('dropshipping.url')
         self.config['dropshipping_login'] = environ.get('dropshipping.login')
         self.config['dropshipping_pass'] = environ.get('dropshipping.pass')
-        self.config['store_url'] = environ.get('store.url')
         self.config['headless'] = environ.get('headless', True) == 'True'
         self.config['timeout'] = int(environ.get('timeout'))
         self.config['firefox_binary'] = environ.get('firefox.binary')
