@@ -10,11 +10,8 @@ import re
 class FillDropshippingDataService:
     def __init__(self):
         self.config = read_config.ReadConfig().read_configs()
-        options = Options()
-        options.headless = self.config['headless']
-        self.driver = webdriver.Firefox(firefox_binary=self.config['firefox_binary'], executable_path=self.config['geckodriver'], options=options)
-        self.helper = DriverHelper(self.driver, self.config['timeout'])
-        print('Creating firefox instance')
+        self.helper = DriverHelper(self.config)
+        self.driver = self.helper.driver
 
     def fill_dropshipping(self, order):
         print('Entering dropshipping')
