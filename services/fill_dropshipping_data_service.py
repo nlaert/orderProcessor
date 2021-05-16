@@ -1,19 +1,18 @@
+from config.read_config import ReadConfig
 from driver_helper import DriverHelper
 from selenium.webdriver.support.select import Select
-from config import read_config
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
 import time
 import re
 
 
 class FillDropshippingDataService:
     def __init__(self):
-        self.config = read_config.ReadConfig().read_configs()
+        self.config = ReadConfig().read_configs()
+
+    def fill_dropshipping(self, order):
         self.helper = DriverHelper(self.config)
         self.driver = self.helper.driver
 
-    def fill_dropshipping(self, order):
         print('Entering dropshipping')
         self.driver.get(self.config['dropshipping_url'])
         self.driver.find_element_by_css_selector('#login_header_button > span').click()
@@ -26,7 +25,7 @@ class FillDropshippingDataService:
         customer_row = self.__check_if_customer_exists(order['customer_id'])
         if customer_row is None:
             self.__create_customer(order)
-            time.sleep(5)
+            time.sleep(10)
             customer_row = self.__check_if_customer_exists(order['customer_id'])
         self.__create_order(order, customer_row)
         self.driver.quit()
