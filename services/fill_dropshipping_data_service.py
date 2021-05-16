@@ -68,9 +68,10 @@ class FillDropshippingDataService:
         sku = self.__get_complete_sku(item['sku'])
         self.helper.wait_for_load_by_xpath('//*[@id="block_0"]/div[2]/span/table/thead/tr[1]/td/div/input[1]').send_keys(sku)
         self.driver.find_element_by_xpath('//*[@id="block_0"]/div[2]/span/table/thead/tr[1]/td/div/input[2]').send_keys(item['quantity'])
-        time.sleep(2)
+        time.sleep(5)
         self.helper.wait_for_load_by_css('.add_item_results').click()
         self.driver.find_element_by_class_name('fa-cloud').click()
+        time.sleep(5)
 
     def __get_complete_sku(self, sku):
         index = re.search(r'\d', sku).start()
