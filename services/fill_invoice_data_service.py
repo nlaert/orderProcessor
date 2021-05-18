@@ -49,3 +49,4 @@ class FillInvoiceDataService:
         for meta_data in order['meta_data']:
             if meta_data['key'] == 'billing_nif':
                 return meta_data['value']
+        return ''
