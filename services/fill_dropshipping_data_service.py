@@ -19,14 +19,10 @@ class FillDropshippingDataService:
         self.helper.wait_for_load('handle').send_keys(self.config['dropshipping_login'])
         self.driver.find_element_by_id('pwd').send_keys(self.config['dropshipping_pass'])
         self.driver.find_element_by_id('login_button').click()
-        self.helper.wait_for_load('customers_button').click()
-        # Wait for element does not work here because this is a div and not a button / link
-        time.sleep(5)
+        
         customer_row = self.__check_if_customer_exists(order['customer_id'])
         if customer_row is None:
             self.__create_customer(order)
-            time.sleep(10)
-            self.helper.wait_for_load('customers_button').click()
             customer_row = self.__check_if_customer_exists(order['customer_id'])
         self.__create_order(order, customer_row)
         self.driver.quit()
@@ -51,6 +47,9 @@ class FillDropshippingDataService:
         self.helper.wait_for_load_by_css('button.ui-button:nth-child(1)').click()
 
     def __check_if_customer_exists(self, customer_id):
+        self.helper.wait_for_load('customers_button').click()
+        # Wait for element does not work here because this is a div and not a button / link
+        time.sleep(10)
         rows = self.driver.find_elements_by_css_selector('#table > table > tbody > tr')
         for row in rows:
             firstSpaceIndex = row.text.index(' ')
