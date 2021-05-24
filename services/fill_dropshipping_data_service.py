@@ -26,6 +26,7 @@ class FillDropshippingDataService:
         if customer_row is None:
             self.__create_customer(order)
             time.sleep(10)
+            self.helper.wait_for_load('customers_button').click()
             customer_row = self.__check_if_customer_exists(order['customer_id'])
         self.__create_order(order, customer_row)
         self.driver.quit()
