@@ -32,7 +32,7 @@ class FillDropshippingDataService:
         self.driver.quit()
 
     def __create_customer(self, order):
-        self.driver.find_element_by_id('new_customer').click()
+        self.helper.wait_for_load('new_customer').click()
         self.helper.wait_for_load_by_name('client_reference').send_keys(order['customer_id'])
         self.driver.find_element_by_name('name').send_keys(order['shipping']['first_name'] + ' '
                                                            + order['shipping']['last_name'])
