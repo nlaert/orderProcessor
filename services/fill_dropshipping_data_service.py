@@ -23,6 +23,7 @@ class FillDropshippingDataService:
         customer_row = self.__check_if_customer_exists(order['customer_id'])
         if customer_row is None:
             self.__create_customer(order)
+            print('create new customer')
             customer_row = self.__check_if_customer_exists(order['customer_id'])
         self.__create_order(order, customer_row)
         self.driver.quit()
@@ -44,7 +45,6 @@ class FillDropshippingDataService:
         dropdown.select_by_value(order['shipping']['country'])
 
         self.driver.find_element_by_id('save_new_client_button').click()
-        self.helper.wait_for_load_by_css('button.ui-button:nth-child(1)').click()
 
     def __check_if_customer_exists(self, customer_id):
         self.helper.wait_for_load('customers_button').click()
