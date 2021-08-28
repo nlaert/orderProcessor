@@ -50,12 +50,16 @@ class FillDropshippingDataService:
         self.helper.wait_for_load('customers_button').click()
         # Wait for element does not work here because this is a div and not a button / link
         time.sleep(10)
+        print('looking for customer id ' + str(customer_id))
         rows = self.driver.find_elements_by_css_selector('#table > table > tbody > tr')
         for row in rows:
             firstSpaceIndex = row.text.index(' ')
             ref = int(row.text[0:firstSpaceIndex])
+            print('element id = ' + 'portfolio_ref_' + str(ref))
             id = row.find_element_by_id('portfolio_ref_' + str(ref)).find_element_by_tag_name('span').text
+            print('id = ' + id)
             if int(id) == customer_id:
+                print('found customer id')
                 return row
         return None
 
