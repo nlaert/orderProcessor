@@ -1,4 +1,5 @@
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
@@ -29,3 +30,9 @@ class DriverHelper:
     def wait_for_load_by_css(self, selector):
         return WebDriverWait(self.driver, self.timeout) \
             .until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+
+    def replace_input_value_by_id(self, element_id, number_of_chars_to_remove, value):
+        element = self.driver.find_element_by_id(element_id)
+        for i in range(0, number_of_chars_to_remove):
+            element.send_keys(Keys.BACK_SPACE)
+        element.send_keys(value)

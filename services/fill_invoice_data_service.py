@@ -23,17 +23,18 @@ class FillInvoiceDataService:
         self.helper.wait_for_load_by_xpath('/html/body/div[6]/div[1]/div[2]/div/ul/li[2]/a').click()
         customer_row = self.__check_if_customer_exists(order)
         if customer_row is None:
-            self.create_customer(order)
-        time.sleep(10)
+            self.__create_customer(order)
+            customer_row = self.__check_if_customer_exists(order)
+        self.__create_invoice(customer_row, order)
         self.driver.quit()
 
     def __check_if_customer_exists(self, order):
-        nif = self.__get_nif__(order)
+        nif = self.__get_nif(order)
         search_key = nif if nif is not None else self.__get_full_name(order)
         print('searching for ' + search_key)
         self.helper.wait_for_load('keyword').send_keys(search_key)
         self.driver.find_element_by_id('keyword').send_keys(Keys.ENTER)
-        time.sleep(5)
+        time.sleep(2)
 
         rows = self.driver.find_elements_by_css_selector('table.object_list:nth-child(3) > tbody > .row')
         for row in rows:
@@ -43,12 +44,11 @@ class FillInvoiceDataService:
                 return row
         return None
 
-
-    def create_customer(self, order):
+    def __create_customer(self, order):
         self.helper.wait_for_load_by_name('Add').click()
         self.helper.wait_for_load('name').send_keys(self.__get_full_name(order))
         self.driver.find_element_by_id('code').send_keys(order['customer_id'])
-        self.driver.find_element_by_id('nif').send_keys(self.__get_nif__(order))
+        self.driver.find_element_by_id('nif').send_keys(self.__get_nif(order))
         self.driver.find_element_by_id('entity').send_keys(order['billing']['company'])
         self.driver.find_element_by_name('email').send_keys(order['billing']['email'])
         Select(self.driver.find_element_by_id('status')).select_by_visible_text('Aberto')
@@ -61,11 +61,43 @@ class FillInvoiceDataService:
         self.driver.find_element_by_id('telephone').send_keys(order['billing']['phone'])
 
         self.driver.find_element_by_name('Send').click()
-        modal = self.driver.find_element_by_id('modal')
-        if modal.text == 'Tem a certeza que quer criar o cliente?':
-            self.helper.wait_for_load_by_xpath('/html/body/div[8]/div[3]/div/button[1]').send_keys(Keys.ENTER)
+        self.__confirm_modal('Tem a certeza que quer criar o cliente?', '/html/body/div[8]/div[3]/div/button[1]')
 
-    def __get_nif__(self, order):
+    def __create_invoice(self, customer_row, order):
+        customer_row.find_element_by_tag_name('a').click()
+        self.helper.wait_for_load_by_xpath('/html/body/div[6]/div[2]/div/div/form/div[1]/div[2]/a[2]/img').click()
+        Select(self.helper.wait_for_load('document_type')).select_by_visible_text('Orçamento')
+        self.__set_date_value(self.driver.find_element_by_name('date'), order['date_created'])
+        self.__set_date_value(self.driver.find_element_by_name('payment_date'), order['date_created'])
+        self.driver.find_element_by_name('Send').click()
+        self.__confirm_modal('Tem a certeza que quer criar o documento?', '/html/body/div[8]/div[3]/div/button[1]')
+        for item in order['line_items']:
+            self.__add_products(item)
+        self.__add_shipping(order['shipping_lines'][0])
+
+    def __add_products(self, item):
+        self.helper.wait_for_load('item_type_product').click()
+        self.driver.find_element_by_id('item').send_keys(self.__create_item_name(item))
+        self.helper.replace_input_value_by_id(element_id='quantity', number_of_chars_to_remove=1, value=item['quantity'])
+        price = str(item['price']).replace('.', ',')
+        self.helper.replace_input_value_by_id(element_id='price', number_of_chars_to_remove=4, value=price)
+        self.driver.find_element_by_id('item_update').click()
+        Select(self.helper.wait_for_load('taxfreereason')).select_by_visible_text('M10-IVA - Regime de isenção')
+        self.__confirm_modal('Está a introduzir um artigo sem IVA', '/html/body/div[7]/div[3]/div/button[1]')
+        time.sleep(4)
+
+    def __add_shipping(self, item):
+        # Let's pretend the shipping line is just another item
+        shipping_item = {
+            'name': item['method_title'],
+            'quantity': 1,
+            'price': item['total']
+        }
+        self.__add_products(shipping_item)
+
+    ############# AUX Methods #############
+
+    def __get_nif(self, order):
         for meta_data in order['meta_data']:
             if meta_data['key'] == 'billing_nif':
                 return meta_data['value']
@@ -73,3 +105,18 @@ class FillInvoiceDataService:
     
     def __get_full_name(self, order):
         return order['billing']['first_name'] + ' ' + order['billing']['last_name']
+
+    def __confirm_modal(self, expected_modal_text, button_xpath):
+        modal = self.driver.find_element_by_id('modal')
+        if expected_modal_text in modal.text:
+            self.helper.wait_for_load_by_xpath(button_xpath).send_keys(Keys.ENTER)
+
+    def __set_date_value(self, element, date_time):
+        date = date_time[0:11]
+        element.clear()
+        element.send_keys(date)
+
+    def __create_item_name(self, item):
+        if 'sku' not in item:
+            return item['name']
+        return '{name} (#{sku})'.format(name = item['name'], sku = item['sku'])
