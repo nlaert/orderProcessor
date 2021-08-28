@@ -3,6 +3,7 @@ from config.read_config import ReadConfig
 from selenium.webdriver.support.select import Select
 from driver_helper import DriverHelper
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 
 class FillInvoiceDataService:
     def __init__(self):
@@ -20,13 +21,32 @@ class FillInvoiceDataService:
 
         self.helper.wait_for_load('news')
         self.helper.wait_for_load_by_xpath('/html/body/div[6]/div[1]/div[2]/div/ul/li[2]/a').click()
-        self.helper.wait_for_load_by_name('Add').click()
-        self.create_customer(order)
+        customer_row = self.__check_if_customer_exists(order)
+        if customer_row is None:
+            self.create_customer(order)
         time.sleep(10)
         self.driver.quit()
 
+    def __check_if_customer_exists(self, order):
+        nif = self.__get_nif__(order)
+        search_key = nif if nif is not None else self.__get_full_name(order)
+        print('searching for ' + search_key)
+        self.helper.wait_for_load('keyword').send_keys(search_key)
+        self.driver.find_element_by_id('keyword').send_keys(Keys.ENTER)
+        time.sleep(5)
+
+        rows = self.driver.find_elements_by_css_selector('table.object_list:nth-child(3) > tbody > .row')
+        for row in rows:
+            cols = row.find_elements(By.TAG_NAME, 'td')
+            if cols[0].text == str(order['customer_id']):
+                print('found customer ' + self.__get_full_name(order))
+                return row
+        return None
+
+
     def create_customer(self, order):
-        self.helper.wait_for_load('name').send_keys(order['billing']['first_name'] + ' ' + order['billing']['last_name'])
+        self.helper.wait_for_load_by_name('Add').click()
+        self.helper.wait_for_load('name').send_keys(self.__get_full_name(order))
         self.driver.find_element_by_id('code').send_keys(order['customer_id'])
         self.driver.find_element_by_id('nif').send_keys(self.__get_nif__(order))
         self.driver.find_element_by_id('entity').send_keys(order['billing']['company'])
@@ -50,3 +70,6 @@ class FillInvoiceDataService:
             if meta_data['key'] == 'billing_nif':
                 return meta_data['value']
         return ''
+    
+    def __get_full_name(self, order):
+        return order['billing']['first_name'] + ' ' + order['billing']['last_name']
