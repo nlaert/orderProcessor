@@ -18,15 +18,18 @@ class FillInvoiceDataService:
         self.driver.find_element_by_id("email").send_keys(self.config['invoice.login'])
         self.driver.find_element_by_id("password").send_keys(self.config['invoice.pass'])
         self.driver.find_element_by_name('submit').click()
-
-        self.helper.wait_for_load('news')
-        self.helper.wait_for_load_by_xpath('/html/body/div[6]/div[1]/div[2]/div/ul/li[2]/a').click()
+        self.__go_to_customers_page()
+        
         customer_row = self.__check_if_customer_exists(order)
         if customer_row is None:
             self.__create_customer(order)
+            self.__go_to_customers_page
             customer_row = self.__check_if_customer_exists(order)
         self.__create_invoice(customer_row, order)
         self.driver.quit()
+
+    def __go_to_customers_page(self):
+        self.helper.wait_for_load_by_xpath('/html/body/div[6]/div[1]/div[2]/div/ul/li[2]/a').click()
 
     def __check_if_customer_exists(self, order):
         nif = self.__get_nif(order)
