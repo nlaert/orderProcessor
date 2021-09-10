@@ -23,6 +23,7 @@ class FillInvoiceDataService:
         customer_row = self.__check_if_customer_exists(order)
         if customer_row is None:
             self.__create_customer(order)
+            time.sleep(5)
             self.__go_to_customers_page
             customer_row = self.__check_if_customer_exists(order)
         self.__create_invoice(customer_row, order)
