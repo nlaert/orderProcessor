@@ -24,7 +24,7 @@ class FillInvoiceDataService:
         if customer_row is None:
             self.__create_customer(order)
             time.sleep(5)
-            self.__go_to_customers_page
+            self.__go_to_customers_page()
             customer_row = self.__check_if_customer_exists(order)
         self.__create_invoice(customer_row, order)
         self.driver.quit()
@@ -34,7 +34,7 @@ class FillInvoiceDataService:
 
     def __check_if_customer_exists(self, order):
         nif = self.__get_nif(order)
-        search_key = nif if nif is not None else self.__get_full_name(order)
+        search_key = nif if nif != '' else self.__get_full_name(order)
         print('searching for ' + search_key)
         self.helper.wait_for_load('keyword').send_keys(search_key)
         self.driver.find_element_by_id('keyword').send_keys(Keys.ENTER)
