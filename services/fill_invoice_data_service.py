@@ -70,7 +70,7 @@ class FillInvoiceDataService:
     def __create_invoice(self, customer_row, order):
         customer_row.find_element_by_tag_name('a').click()
         self.helper.wait_for_load_by_xpath('/html/body/div[6]/div[2]/div/div/form/div[1]/div[2]/a[2]/img').click()
-        Select(self.helper.wait_for_load('document_type')).select_by_visible_text('Orçamento')
+        Select(self.helper.wait_for_load('document_type')).select_by_visible_text('Factura Simplificada')
         self.__set_date_value(self.driver.find_element_by_name('date'), order['date_created'])
         self.__set_date_value(self.driver.find_element_by_name('payment_date'), order['date_created'])
         self.driver.find_element_by_name('Send').click()
@@ -87,7 +87,7 @@ class FillInvoiceDataService:
         self.helper.replace_input_value_by_id(element_id='price', number_of_chars_to_remove=4, value=price)
         self.driver.find_element_by_id('item_update').click()
         Select(self.helper.wait_for_load('taxfreereason')).select_by_visible_text('M10-IVA - Regime de isenção')
-        self.__confirm_modal('Está a introduzir um artigo sem IVA', '/html/body/div[7]/div[3]/div/button[1]')
+        self.__confirm_modal('Está a introduzir um artigo sem IVA', '/html/body/div[7]/div[3]/div/button[1]') # Probably no longer needed
         time.sleep(4)
 
     def __add_shipping(self, item):
