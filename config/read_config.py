@@ -1,4 +1,5 @@
 from os import environ
+from configparser import ConfigParser
 
 
 class ReadConfig:
@@ -10,6 +11,7 @@ class ReadConfig:
         self.__read_from_env()
         if self.config['dropshipping_url'] is None:
             print("Could not read env data")
+            self.read_from_config()
         return self.config
 
     def __read_from_env(self):
@@ -20,6 +22,18 @@ class ReadConfig:
         self.config['invoice.login'] = environ.get('invoice.login')
         self.config['invoice.pass'] = environ.get('invoice.pass')
         self.config['headless'] = environ.get('headless', True) == 'True'
-        self.config['timeout'] = int(environ.get('timeout'))
-        self.config['firefox_binary'] = environ.get('firefox.binary')
-        self.config['geckodriver'] = environ.get('geckodriver')
+        
+    def read_from_config(self):
+        configParser = ConfigParser()
+        configParser.read("config.ini")
+        self.config["dropship_url"] = configParser["DROPSHIP_INFO"]["url"]
+        self.config["dropship_login"] = configParser["DROPSHIP_INFO"]["login"]
+        self.config["dropship_pass"] = configParser["DROPSHIP_INFO"]["password"]
+        self.config["store_url"] = configParser["STORE_INFO"]["url"]
+        self.config["store_login"] = configParser["STORE_INFO"]["login"]
+        self.config["store_pass"] = configParser["STORE_INFO"]["password"]
+        self.read_general_config(configParser)
+
+    
+    def read_general_config(self, configParser):
+        self.config["headless"] = configParser.getboolean("GENERAL", "headless")

@@ -1,82 +1,99 @@
 from config.read_config import ReadConfig
-from driver_helper import DriverHelper
-from selenium.webdriver.support.select import Select
+from playwright.sync_api import sync_playwright
 import time
 import re
 
 
 class FillDropshippingDataService:
     def __init__(self):
-        self.config = ReadConfig().read_configs()
+        super().__init__()
+        self.options = ReadConfig().read_configs()
+        with sync_playwright() as playwright:
+            self.browser = playwright.chromium.launch(headless=self.options["headless"])
 
     def fill_dropshipping(self, order):
-        self.helper = DriverHelper(self.config)
-        self.driver = self.helper.driver
+        with sync_playwright() as playwright:
+            browser, context, page = self.__setup_playwright(playwright, self.options["headless"])
+            try:
+                page.goto(self.options["dropship_url"])
+                self.__process_order(page, order)
+            finally:
+                context.close()
+                browser.close()
 
-        print('Entering dropshipping')
-        self.driver.get(self.config['dropshipping_url'])
-        self.driver.find_element_by_css_selector('#login_header_button > span').click()
-        self.helper.wait_for_load('handle').send_keys(self.config['dropshipping_login'])
-        self.driver.find_element_by_id('pwd').send_keys(self.config['dropshipping_pass'])
-        self.driver.find_element_by_id('login_button').click()
+    
+    def __setup_playwright(self, playwright, headless):
+        """Set up playwright."""
+        browser = playwright.chromium.launch(headless=headless)
+        context = browser.new_context()
+        page = context.new_page()
         
-        customer_row = self.__check_if_customer_exists(order['customer_id'])
+        return browser, context, page
+
+    def __process_order(self, page, order):
+        print("Entering dropship")
+        page.locator("#login_header_button > span").click()
+        time.sleep(5)
+        page.locator("#handle").fill(self.options["dropship_login"])
+        page.locator("#pwd").fill(self.options["dropship_pass"])
+        page.get_by_role("button", name="Log in").click()
+        
+        customer_row = self.__check_if_customer_exists(page, order['customer_id'])
         if customer_row is None:
-            self.__create_customer(order)
-            print('create new customer')
-            customer_row = self.__check_if_customer_exists(order['customer_id'])
+            self.__create_customer(page, order)
+            print('created new customer')
+            customer_row = self.__check_if_customer_exists(page, order['customer_id'])
         self.__create_order(order, customer_row)
-        self.driver.quit()
 
-    def __create_customer(self, order):
-        self.helper.wait_for_load('new_customer').click()
-        self.helper.wait_for_load_by_name('client_reference').send_keys(order['customer_id'])
-        self.driver.find_element_by_name('name').send_keys(order['shipping']['first_name'] + ' '
+    def __create_customer(self, page, order):
+        page.locator('#new_customer').click()
+        self.__get_by_name(page, 'client_reference').fill(str(order['customer_id']))
+        page.__get_by_name(page, 'name').fill(order['shipping']['first_name'] + ' '
                                                            + order['shipping']['last_name'])
-        self.driver.find_element_by_name('organization').send_keys(order['shipping']['company'])
-        self.driver.find_element_by_name('email').send_keys(order['billing']['email'])
-        self.driver.find_element_by_name('tel').send_keys(order['billing']['phone'])
-        self.driver.find_element_by_name('addressLine1').send_keys(order['shipping']['address_1'])
-        self.driver.find_element_by_name('addressLine2').send_keys(order['shipping']['address_2'])
-        self.driver.find_element_by_name('postalCode').send_keys(order['shipping']['postcode'])
-        self.driver.find_element_by_name('locality').send_keys(order['shipping']['city'])
-        self.driver.find_element_by_name('administrativeArea').send_keys(order['shipping']['city'])
-        dropdown = Select(self.driver.find_element_by_id('country_select'))
-        dropdown.select_by_value(order['shipping']['country'])
+        self.__get_by_name(page, 'organization').fill(order['shipping']['company'])
+        self.__get_by_name(page, 'email').fill(order['billing']['email'])
+        self.__get_by_name(page, 'tel').fill(order['billing']['phone'])
+        self.__get_by_name(page, 'addressLine1').fill(order['shipping']['address_1'])
+        self.__get_by_name(page, 'addressLine2').fill(order['shipping']['address_2'])
+        self.__get_by_name(page, 'postalCode').fill(order['shipping']['postcode'])
+        self.__get_by_name(page, 'locality').fill(order['shipping']['city'])
+        self.__get_by_name(page, 'administrativeArea').fill(order['shipping']['city'])
+        self.__get_by_name(page, 'country').select_option(order['shipping']['country'])
 
-        self.driver.find_element_by_id('save_new_client_button').click()
+        page.locator('#save_new_client_button').click()
 
-    def __check_if_customer_exists(self, customer_id):
-        self.helper.wait_for_load('customers_button').click()
-        # Wait for element does not work here because this is a div and not a button / link
-        time.sleep(10)
+    def __check_if_customer_exists(self, page, customer_id):
+        page.locator('#customers_button').click()
+        
         print('looking for customer id ' + str(customer_id))
-        rows = self.driver.find_elements_by_css_selector('#table > table > tbody > tr')
-        for row in rows:
-            firstSpaceIndex = row.text.index(' ')
-            ref = int(row.text[0:firstSpaceIndex])
-            print('element id = ' + 'portfolio_ref_' + str(ref))
-            id = row.find_element_by_id('portfolio_ref_' + str(ref)).find_element_by_tag_name('span').text
-            print('id = ' + id)
+        
+        # TODO: confirm logic https://playwright.dev/python/docs/other-locators#n-th-element-locator
+        for i, row in enumerate(page.locator('#table > table > tbody > tr').all()):
+            id = row.nth(i).locator('td').nth(1).inner_text()
+            print('id = %s' % id)
             if int(id) == customer_id:
                 print('found customer id')
                 return row
         return None
 
-    def __create_order(self, order, customer_row):
-        customer_row.find_element_by_class_name('fa-shopping-cart').click()
+    def __create_order(self, page, order, customer_row): # TODO
+        customer_row.locator('.fa-shopping-cart').click()
         for item in order['line_items']:
-            self.__add_products(item)
+            self.__add_products(page, item)
 
-    def __add_products(self, item):
+    def __add_products(self, page, item):
         sku = self.__get_complete_sku(item['sku'])
-        self.helper.wait_for_load_by_xpath('//*[@id="block_0"]/div[2]/span/table/thead/tr[1]/td/div/input[1]').send_keys(sku)
-        self.driver.find_element_by_xpath('//*[@id="block_0"]/div[2]/span/table/thead/tr[1]/td/div/input[2]').send_keys(item['quantity'])
-        time.sleep(5)
-        self.helper.wait_for_load_by_xpath('/html/body/div[1]/div/div[4]/div[2]/div/div[2]/span/table/thead/tr[1]/td/div/div/table/tbody/tr[2]').click()
+        page.locator('.item').fill(sku)
+        page.locator('.qty').fill(item['quantity'])
+        #time.sleep(5)
+        page.locator('.fa-cloud').click()
         self.driver.find_element_by_class_name('fa-cloud').click()
         time.sleep(5)
 
     def __get_complete_sku(self, sku):
         index = re.search(r'\d', sku).start()
         return sku[0: index] + '-' + sku[index: len(sku)]
+    
+    def __get_by_name(self, page, name):
+        str = "[name=%s]" % name
+        return page.locator(str)
