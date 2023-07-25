@@ -42,13 +42,14 @@ class FillDropshippingDataService:
         if customer_row is None:
             self.__create_customer(page, order)
             print('created new customer')
-            customer_row = self.__check_if_customer_exists(page, order['customer_id'])
-        self.__create_order(order, customer_row)
+        else:
+            customer_row.query_selector('.fa-shopping-cart').click()
+        self.__create_order(page, order)
 
     def __create_customer(self, page, order):
-        page.locator('#new_customer').click()
+        page.locator('#order_for_new_customer').click()
         self.__get_by_name(page, 'client_reference').fill(str(order['customer_id']))
-        page.__get_by_name(page, 'name').fill(order['shipping']['first_name'] + ' '
+        self.__get_by_name(page, 'name').fill(order['shipping']['first_name'] + ' '
                                                            + order['shipping']['last_name'])
         self.__get_by_name(page, 'organization').fill(order['shipping']['company'])
         self.__get_by_name(page, 'email').fill(order['billing']['email'])
@@ -60,34 +61,34 @@ class FillDropshippingDataService:
         self.__get_by_name(page, 'administrativeArea').fill(order['shipping']['city'])
         self.__get_by_name(page, 'country').select_option(order['shipping']['country'])
 
-        page.locator('#save_new_client_button').click()
+        page.locator('#save_order_for_new_customer_button').click()
 
-    def __check_if_customer_exists(self, page, customer_id):
-        page.locator('#customers_button').click()
-        
+    def __check_if_customer_exists(self, page, customer_id):        
         print('looking for customer id ' + str(customer_id))
+        # Wait for the table to load
+        page.wait_for_selector('.backgrid')
+        rows = page.query_selector_all('table tbody tr')
         
-        # TODO: confirm logic https://playwright.dev/python/docs/other-locators#n-th-element-locator
-        for i, row in enumerate(page.locator('#table > table > tbody > tr').all()):
-            id = row.nth(i).locator('td').nth(1).inner_text()
-            print('id = %s' % id)
-            if int(id) == customer_id:
-                print('found customer id')
-                return row
+        for i, row in enumerate(rows):
+            cells = row.query_selector_all('td')
+            for cell in cells:
+                value = cell.inner_text()
+                if value == str(customer_id):
+                    print('found customer id')
+                    return row
+           
         return None
 
-    def __create_order(self, page, order, customer_row): # TODO
-        customer_row.locator('.fa-shopping-cart').click()
+    def __create_order(self, page, order):
         for item in order['line_items']:
             self.__add_products(page, item)
 
     def __add_products(self, page, item):
         sku = self.__get_complete_sku(item['sku'])
-        page.locator('.item').fill(sku)
-        page.locator('.qty').fill(item['quantity'])
-        #time.sleep(5)
+        page.locator('input.item').fill(sku)
+        page.locator('.qty').fill(str(item['quantity']))
+        page.locator('.ok.result.selected').click()
         page.locator('.fa-cloud').click()
-        self.driver.find_element_by_class_name('fa-cloud').click()
         time.sleep(5)
 
     def __get_complete_sku(self, sku):
